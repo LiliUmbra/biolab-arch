@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ENTHROPIA BIOLAB-LOGS</title>
+    <title>ENTHROPIA BIOLAB - LOGS</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
@@ -19,11 +19,11 @@
         ::-webkit-scrollbar-track { background: #050605; }
         ::-webkit-scrollbar-thumb { background: #1a9e1a; }
         
-        .sys-glitch { animation: sysGlitchAnim 0.2s cubic-bezier(.25, .46, .45, .94) both infinite; filter: invert(0.8) sepia(1) hue-rotate(300deg); }
-        .screamer-flash { position: fixed; inset: 0; background: radial-gradient(circle, rgba(139,0,0,0.6) 0%, rgba(0,0,0,1) 100%); z-index: 9999; display: flex; align-items: center; justify-content: center; pointer-events: none; animation: screamerFade 1.5s forwards; }
-        .screamer-face { color: #ff0000; font-size: 10vw; font-weight: bold; white-space: pre; text-align: center; text-shadow: 0 0 20px #ff0000; animation: argShake 0.1s infinite; }
+        .sys-glitch { animation: chromaticAnim 0.1s infinite; text-shadow: 3px 0 0 rgba(255,0,0,0.7), -3px 0 0 rgba(0,0,255,0.7); filter: blur(0.5px); }
+        .screamer-flash { position: fixed; inset: 0; background: radial-gradient(circle, rgba(0,0,139,0.6) 0%, rgba(0,0,0,1) 100%); z-index: 9999; display: flex; align-items: center; justify-content: center; pointer-events: none; animation: screamerFade 1.5s forwards; }
+        .screamer-face { color: #1e3a8a; font-size: min(1.5vw, 14px); line-height: 1.1; font-weight: bold; white-space: pre; text-align: center; text-shadow: 0 0 20px #3b82f6; animation: argShake 0.1s infinite; }
         
-        @keyframes sysGlitchAnim { 0% { transform: translate(0); } 20% { transform: translate(-5px, 5px); } 40% { transform: translate(-5px, -5px); } 60% { transform: translate(5px, 5px); } 80% { transform: translate(5px, -5px); } 100% { transform: translate(0); } }
+        @keyframes chromaticAnim { 0% { transform: translate(1px, 1px); } 50% { transform: translate(-1px, -1px); text-shadow: -3px 0 0 rgba(255,0,0,0.7), 3px 0 0 rgba(0,0,255,0.7); } 100% { transform: translate(1px, -1px); } }
         @keyframes screamerFade { 0% { opacity: 0; } 5% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; } }
         @keyframes argShake { 0% { transform: translate(0, 0); } 25% { transform: translate(-2px, 2px); } 50% { transform: translate(2px, -2px); } 75% { transform: translate(-2px, -2px); } 100% { transform: translate(2px, 2px); } }
         @keyframes fadeInItem { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
@@ -99,17 +99,15 @@
 <div id="screamer-overlay" class="hidden">
     <pre class="screamer-face">
                         ##******##                               
-                     %#****#*##########          *#@             
-                    %#**#***********#**####%%%###%@@             
-                   %#*#******+******###******#%@@@@              
+                     %#****#*##########           *#@              
+                    %#**#***********#**####%%%###%@@              
+                   %#*#******+******###******#%@@@@               
                    %###*######**#@@@%%%%%%%@@@@@                 
                    %###*#*###*#%@@@@@@@@%%@@                     
                    %###*#####*%@@@                               
                    %%#**##*#**#%%%                               
                    %##**##*#*++###%                              
-                  #%##*+*****+=**+*                              
-                 %#***=***++++=**+*                              
-             %###***++++***++++#**#                              
+                  #%##*+*****+=**+* %#***=***++++=**+* %###***++++***++++#**#                              
          ###*****+++++=++++=+#%#*#                               
        #*****++++=+===+++=*#%%##                                 
      %##**=========-====+#%%%%%                                  
@@ -119,10 +117,9 @@
 @%##+++*#%#*#*****+*+==+***#%                                    
 @%%#+**%%%#%#####*+++===++++**#                                  
 @%%**#%####%##%#****++#%@@@%%%%%                                 
-%%%***#@%%###%*+**++%@@@@@@@  ++=--::--*                         
-%%%*+*+#*#*+****++#@@@@@@ **+=---::......:-                      
-%%%*+++*#***+**+*%%%%%@%#*+++==+****+-:..::-=*                 @@
-%%##++++******+*%@%%% %%####%%%#%%%###*#*=---=*              %#%@
+%%%***#@%%###%*+**++%@@@@@@@  ++=--::--* %%%*+*+#*#*+****++#@@@@@@ **+=---::......:-                      
+%%%*+++*#***+**+*%%%%%@%#*+++==+****+-:..::-=* @@
+%%##++++******+*%@%%% %%####%%%#%%%###*#*=---=* %#%@
 @%##+=++***+**+#@%%% %%%%%%%%%%%%%%%%%#%##*++++* @%%%@@@@@@%%%#%@
  %%##*+++++*+++@@%% @%%%@%%%%%%%%%%%%%%%########% @@%#%%%#%%#+*%@
  @%##%*++++++=*@@@@ @@%@%%%%%%%%##%%%%%%%####%%%%@@@@%##++**+=#@@
@@ -131,7 +128,7 @@
      %%##%#+==+@%%@ @@@%####%%%%%%%%@%%%####%@@@@@%#%#==-:*%%%@  
       %%###%#*+%%%% @@@@%#**##%%%%%%%%######@@@@@ #%#+--+%@%%    
         %%%###%%@%%% @%%%%#*######%%%%###*#%@@@@ %%##=#%@@%%     
-           %%%%%%%%%  @@%%%%#*####%%%####%@@@@@ %%#%@@@@@@       
+            %%%%%%%%%  @@%%%%#*####%%%####%@@@@@ %%#%@@@@@@       
               %%%%%%@@ @@@@@@%%**#****%@@@@@@ %%#%@@@@@          
                  @%%%%%% %%%%@@@%@@@@@@@@@%% %#%@@@@             
                             @%%%%@@@@@@@@    @@                  
@@ -200,7 +197,7 @@
     "name": "Projet_Savior.pdf",
     "type": "file",
     "parentId": "item_1773504193661",
-    "content": "<span class=\"arg-ghost-typing\" data-text=\"Je serais clément, votre curiosité me distrait. Si vous voulez aller plus loin... Souvenez vous de CAPTIC\"></span>\n\nMEMORANDUM INTERNE - ENTHROPIA BIOGENICS\nDE : Pr. Welbert Aesker, Directeur de Recherche (Secteur 7)\nÀ : Conseil d'Administration\n\nOBJET : Justification des ressources pour le Projet SAVIOR.\n\nLe monde dans lequel nous vivont n'est plus fait pour nous, il nous faut un être capable de nous protéger et de ramener le monde a la raison, c'est pour cela que je vous proposes le projet SAVIOR\n\nLe Projet SAVIOR consiste en la conception d'un être élevé purement en laboratoire. Aucun élément n'est laissé au hasard, nous pouvons jouer avec les règles naturelles autant que nous le souhaitons. Le Sujet n'est pas humain. Il n'a aucun passé, aucun besoin biologique. C'est une architecture parfaite, conçue pour abriter l'indicible. Ainsi nous construirons notre <span class=\"arg-paranoia\" data-true=\"DESTRUCTION\">sauveteur</span>.",
+    "content": "MEMORANDUM INTERNE - ENTHROPIA BIOGENICS\nDE : Pr. Welbert Aesker, Directeur de Recherche (Secteur 7)\nÀ : Conseil d'Administration\n\nOBJET : Justification des ressources pour le Projet SAVIOR.\n\nLe monde dans lequel nous vivont n'est plus fait pour nous, il nous faut un être capable de nous protéger et de ramener le monde a la raison, c'est pour cela que je vous proposes le projet SAVIOR\n\nLe Projet SAVIOR consiste en la conception d'un être élevé purement en laboratoire. Aucun élément n'est laissé au hasard, nous pouvons jouer avec les règles naturelles autant que nous le souhaitons. Le Sujet n'est pas humain. Il n'a aucun passé, aucun besoin biologique. C'est une architecture parfaite, conçue pour abriter l'indicible. Ainsi nous construirons notre <span class=\"arg-paranoia\" data-true=\"DESTRUCTION\">sauveteur</span>.",
     "date": "29/09/2028 09:19:49",
     "password": "",
     "isGhost": false
@@ -446,15 +443,15 @@
         
         if (targetEl.closest('.arg-glitch-link')) {
             playBeep(100, 'sawtooth', 0.8, 0.2);
-            document.body.classList.add('sys-glitch', 'invert', 'sepia', 'hue-rotate-[300deg]');
-            setTimeout(() => { document.body.classList.remove('sys-glitch', 'invert', 'sepia', 'hue-rotate-[300deg]'); }, 1000);
+            document.body.classList.add('sys-glitch');
+            setTimeout(() => { document.body.classList.remove('sys-glitch'); }, 1000);
         }
         
         const revealEl = targetEl.closest('.arg-reveal');
         if (revealEl) {
             playBeep(100, 'sawtooth', 0.8, 0.3);
-            document.body.classList.add('sys-glitch', 'invert', 'sepia', 'hue-rotate-[300deg]');
-            setTimeout(() => { document.body.classList.remove('sys-glitch', 'invert', 'sepia', 'hue-rotate-[300deg]'); }, 500);
+            document.body.classList.add('sys-glitch');
+            setTimeout(() => { document.body.classList.remove('sys-glitch'); }, 500);
             const secret = revealEl.getAttribute('data-secret');
             fileContentDiv.innerHTML = secret;
             setupDynamics();
@@ -581,12 +578,12 @@
             const orig = p.textContent;
             const truth = p.getAttribute('data-true');
             const intId = setInterval(() => {
-                if (Math.random() > 0.8) {
+                if (Math.random() > 0.2) {
                     p.textContent = truth;
                     p.classList.add('text-red-500', 'font-bold');
-                    setTimeout(() => { p.textContent = orig; p.classList.remove('text-red-500', 'font-bold'); }, 200);
+                    setTimeout(() => { p.textContent = orig; p.classList.remove('text-red-500', 'font-bold'); }, 2500);
                 }
-            }, 3000);
+            }, 3500);
             dynamicIntervals.push(intId);
         });
 
@@ -702,8 +699,8 @@
 
             if (file.content && file.content.includes('[FATAL_EXCEPTION_')) {
                 playBeep(100, 'sawtooth', 0.8, 0.2);
-                document.body.classList.add('sys-glitch', 'invert', 'sepia', 'hue-rotate-[300deg]');
-                setTimeout(() => { document.body.classList.remove('sys-glitch', 'invert', 'sepia', 'hue-rotate-[300deg]'); }, 1000);
+                document.body.classList.add('sys-glitch');
+                setTimeout(() => { document.body.classList.remove('sys-glitch'); }, 1000);
             }
             lucide.createIcons();
         } else {
