@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>U.S.G. BIOLAB - LOGS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { margin: 0; background-color: #020202; color: #1a9e1a; font-family: 'Courier New', Courier, monospace; overflow: hidden; }
+        .crt-noise { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-image: url('data:image/svg+xml,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noise"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noise)"/%3E%3C/svg%3E'); opacity: 0.05; pointer-events: none; z-index: 50; }
+        .scanlines { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(rgba(18,16,16,0) 50%, rgba(0,0,0,0.25) 50%); background-size: 100% 4px; pointer-events: none; z-index: 40; }
+        .folder-item { cursor: pointer; padding: 4px 8px; display: flex; align-items: center; }
+        .folder-item:hover { background-color: rgba(26, 158, 26, 0.2); }
+        .folder-item.selected { background-color: rgba(26, 158, 26, 0.3); }
+        .icon { width: 16px; height: 16px; margin-right: 8px; }
+        .chevron { width: 16px; height: 16px; margin-right: 4px; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #050605; }
+        ::-webkit-scrollbar-thumb { background: #1a9e1a; }
+        
+        .sys-glitch { animation: sysGlitchAnim 0.2s cubic-bezier(.25, .46, .45, .94) both infinite; filter: invert(0.8) sepia(1) hue-rotate(300deg); }
+        .screamer-flash { position: fixed; inset: 0; background: radial-gradient(circle, rgba(139,0,0,0.6) 0%, rgba(0,0,0,1) 100%); z-index: 9999; display: flex; align-items: center; justify-content: center; pointer-events: none; animation: screamerFade 1.5s forwards; }
+        .screamer-face { color: #ff0000; font-size: 10vw; font-weight: bold; white-space: pre; text-align: center; text-shadow: 0 0 20px #ff0000; animation: argShake 0.1s infinite; }
+        
+        @keyframes sysGlitchAnim { 0% { transform: translate(0); } 20% { transform: translate(-5px, 5px); } 40% { transform: translate(-5px, -5px); } 60% { transform: translate(5px, 5px); } 80% { transform: translate(5px, -5px); } 100% { transform: translate(0); } }
+        @keyframes screamerFade { 0% { opacity: 0; } 5% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; } }
+        @keyframes argShake { 0% { transform: translate(0, 0); } 25% { transform: translate(-2px, 2px); } 50% { transform: translate(2px, -2px); } 75% { transform: translate(-2px, -2px); } 100% { transform: translate(2px, 2px); } }
+        @keyframes fadeInItem { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes bleedAnim { 0% { color: inherit; text-shadow: none; transform: translateY(0); opacity: 1; } 15% { color: #8b0000; text-shadow: 0 5px 10px #8b0000; transform: translateY(10px); opacity: 1; } 100% { color: #8b0000; text-shadow: 0 20px 20px #8b0000; transform: translateY(100vh); opacity: 0; } }
+        
+        .tree-anim { opacity: 0; animation: fadeInItem 0.2s forwards; }
+        .arg-shake { display: inline-block; animation: argShake 0.2s infinite; }
+        .arg-uv { opacity: 0.02; transition: opacity 0.5s; cursor: help; border-bottom: 1px dashed rgba(26,158,26,0.3); }
+        .arg-uv:hover { opacity: 1; }
+        .arg-redacted { background-color: #1a9e1a; color: #1a9e1a; cursor: pointer; transition: color 0.2s; }
+        .arg-redacted:hover { color: #000; }
+        .arg-glitch-link { text-decoration: underline; text-decoration-style: dashed; cursor: pointer; }
+        .arg-glitch-link:hover { background-color: #1a9e1a; color: #000; }
+        .arg-bleeding { display: inline-block; animation: bleedAnim 4s forwards; animation-delay: 1.5s; }
+        
+        .arg-scanner::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: var(--progress, 0%); background: rgba(255,0,0,0.3); transition: width 0.1s linear; pointer-events: none; }
+        .arg-reveal:hover { background-color: #1a9e1a; color: #000; }
+    </style>
+</head>
+<body>
+<div class="crt-noise"></div>
+<div class="scanlines"></div>
+
+<div id="init-screen" class="min-h-screen flex items-center justify-center text-xl relative z-30 cursor-pointer hover:bg-[#1a9e1a]/10 transition-colors" onclick="startSystem()">
+    <div class="border border-[#1a9e1a] p-8 text-center animate-pulse">
+        <i data-lucide="power" class="w-12 h-12 mx-auto mb-4"></i>
+        <p>INITIALISER LE TERMINAL</p>
+    </div>
+</div>
+
+<div id="boot-screen" class="hidden min-h-screen p-8 flex-col items-start justify-center text-xl relative z-30"></div>
+
+<div id="app-screen" class="hidden min-h-screen flex-col relative z-30 selection:bg-[#1a9e1a] selection:text-black">
+    <header class="border-b border-[#1a9e1a]/30 p-4 flex items-center bg-[#0a0c0a]">
+        <i data-lucide="terminal" class="mr-4 animate-pulse"></i>
+        <div>
+            <h1 class="text-xl font-bold tracking-widest">U.S.G. BIOLAB - SYSTÈME D'ARCHIVAGE</h1>
+            <p class="text-xs opacity-70">UTILISATEUR: WELBERT AESKER | ACCRÉDITATION: NIVEAU 4</p>
+        </div>
+    </header>
+    <div class="flex flex-1 overflow-hidden">
+        <aside class="w-80 border-r border-[#1a9e1a]/30 bg-[#050605] flex flex-col">
+            <div class="p-4 border-b border-[#1a9e1a]/30 text-sm font-bold opacity-70">ARBORESCENCE SYSTÈME</div>
+            <div id="tree-container" class="flex-1 overflow-y-auto p-4 text-sm space-y-1"></div>
+        </aside>
+        <main class="flex-1 bg-[#0a0c0a] flex flex-col shadow-[inset_0_0_100px_rgba(0,0,0,0.9)] relative overflow-hidden">
+            <div id="file-header" class="p-6 border-b border-[#1a9e1a]/20 hidden">
+                <h2 id="file-title" class="text-2xl font-bold"></h2>
+                <p id="file-date" class="text-xs opacity-50 mt-1"></p>
+            </div>
+            <div id="file-content" class="p-6 flex-1 overflow-y-auto whitespace-pre-wrap leading-relaxed opacity-90 text-lg hidden pb-32"></div>
+            <div id="no-file" class="flex-1 flex flex-col items-center justify-center opacity-30">
+                <i data-lucide="terminal" class="w-16 h-16 mb-4"></i>
+                <p>SÉLECTIONNEZ UN FICHIER DANS L'ARBORESCENCE</p>
+            </div>
+        </main>
+    </div>
+</div>
+
+<div id="password-modal" class="hidden fixed inset-0 bg-black/90 z-50 flex-col items-center justify-center p-8">
+    <div class="border border-[#1a9e1a] bg-[#050605] p-6 max-w-md w-full shadow-[0_0_30px_rgba(26,158,26,0.2)] relative">
+        <button onclick="closePwdModal()" class="absolute top-2 right-2 text-[#1a9e1a] hover:text-white">
+            <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+        <p class="mb-4 text-center font-bold">ACCRÉDITATION REQUISE</p>
+        <div class="flex items-center">
+            <span class="mr-4 text-xl">&gt;</span>
+            <input type="password" id="pwd-input" class="bg-transparent border-b border-[#1a9e1a] text-[#1a9e1a] outline-none flex-1 text-center font-mono text-xl tracking-widest uppercase" autocomplete="off">
+        </div>
+        <p id="pwd-error" class="text-red-500 text-xs mt-4 text-center hidden font-bold tracking-widest">ACCÈS REFUSÉ</p>
+    </div>
+</div>
+<div id="screamer-overlay" class="hidden">
+    <pre class="screamer-face">
+  ▄⣶▄
+ ▄⣿██⣿▄
+▄⣿⣿⣿⣿▄
+⣿⣿⣿⣿⣿
+▀⣿⣿⣿⣿▀
+ ▀⠛⠛⠛▀
+    </pre>
+</div>
+
+<script>
+    const fileSystem = [
+  {
+    "id": "root",
+    "name": "C:\\USG_BIOLAB",
+    "type": "folder",
+    "parentId": null,
+    "isGhost": false
+  },
+  {
+    "id": "f1",
+    "name": "01_RAPPORTS",
+    "type": "folder",
+    "parentId": "root",
+    "isGhost": false
+  },
+  {
+    "id": "f2",
+    "name": "02_ANOMALIES",
+    "type": "folder",
+    "parentId": "root",
+    "isGhost": false
+  },
+  {
+    "id": "f3",
+    "name": "SECTEUR_INCONNU",
+    "type": "folder",
+    "parentId": "root",
+    "password": "MK-V",
+    "isGhost": false
+  },
+  {
+    "id": "doc1",
+    "name": "EVALUATION.log",
+    "type": "file",
+    "parentId": "f1",
+    "content": "SUJET : Welbert Aesker\n\nIl affirme entendre des chuchotements. \nRecommandation : <span class=\"arg-redacted\">Repos forcé immédiat.</span>\n\n<span class=\"arg-paranoia\" data-true=\"IL SAIT TOUT\">Le sujet est stable.</span>\n\n<span class=\"arg-uv\">Ne lui dites pas pour l'incident de la cuve.</span>",
+    "date": "04/09/1998 09:15",
+    "isGhost": false
+  },
+  {
+    "id": "doc2",
+    "name": "RADAR_TEST.log",
+    "type": "file",
+    "parentId": "f2",
+    "content": "TEST DU DÉTECTEUR DE MOUVEMENT INTÉGRÉ\n\n<div class=\"arg-radar text-red-500 font-bold my-4\">INITIALISATION DU RADAR...</div>\n\nProtocole de confinement biométrique activé :\n<div class=\"arg-scanner border border-[#1a9e1a] p-4 my-2 text-center font-bold cursor-pointer select-none relative overflow-hidden bg-[#1a9e1a]/5\" data-secret=\"<span class='text-red-500 font-bold text-xl'>EMPREINTE NON RECONNUE. ALERTE. LA CHOSE EST SORTIE.</span>\">MAINTENIR LE CLIC POUR ANALYSE BIOMÉTRIQUE</div>",
+    "date": "14/09/1998 04:22",
+    "isGhost": false
+  },
+  {
+    "id": "doc3",
+    "name": "INTERROGATOIRE.txt",
+    "type": "file",
+    "parentId": "f3",
+    "content": "Je sais qu'elle est là.\n\n<span class=\"arg-shake\">Ils ne peuvent pas la cacher éternellement.</span>\n\n<div class=\"arg-interrogation my-4 p-4 border border-[#1a9e1a]/30 bg-[#1a9e1a]/5\" data-answer=\"REBECCA\" data-target=\"suite_interro\">\nQUI CHERCHEZ-VOUS ?\n<input type=\"text\" class=\"interro-input bg-transparent border-b border-[#1a9e1a] text-[#1a9e1a] outline-none ml-2 uppercase\" placeholder=\"RÉPONSE...\">\n</div>\n\n<div id=\"suite_interro\" class=\"hidden text-red-500 mt-4\">\n<span class=\"arg-ghost-typing\" data-text=\"ELLE EST DÉJÀ MORTE WELBERT. ABANDONNE.\"></span>\n<br><br>\n<input type=\"text\" class=\"arg-possessed bg-transparent border-b border-red-500 text-red-500 outline-none w-full mt-4\" data-msg=\"LAISSE MOI LA VOIR\" placeholder=\"Tapez ici pour répondre...\">\n</div>",
+    "date": "22/09/1998 23:58",
+    "isGhost": false
+  },
+  {
+    "id": "doc_secret",
+    "name": "VERITE.sys",
+    "type": "file",
+    "parentId": "f3",
+    "content": "<span class=\"arg-bleeding text-2xl font-bold block mb-8\">LA CHAIR FOND, L'ESPRIT RESTE</span>\n\nCe fichier n'est qu'une <span class=\"arg-reveal cursor-pointer underline text-[#1a9e1a]\" data-secret=\"<div class='text-red-500 font-bold text-xl'>VOUS N'AURIEZ PAS DÛ REGARDER ICI.</div><br>Le système est compromis.<br><span class='arg-shake'>Il arrive.</span>\">illusion</span>, ne touchez à rien.",
+    "date": "??/??/???? ??:??",
+    "isGhost": false
+  }
+];
+    let expandedFolders = ['root'];
+    let unlockedItems = [];
+    let selectedFileId = null;
+    let audioCtx = null;
+    let treeItemCount = 0;
+    let pendingUnlockId = null;
+    let dynamicIntervals = [];
+    let scannerInt = null;
+    let scannerProg = 0;
+
+    const bootSequence = [
+        "ÉTABLISSEMENT DE LA CONNEXION SÉCURISÉE...",
+        "CONTOURNEMENT DES PROTOCOLES DE SÉCURITÉ... OK",
+        "DÉCRYPTAGE DE L'ARCHIVE DU SECTEUR 7... OK",
+        "BIENVENUE, WELBERT AESKER."
+    ];
+    let bootStep = 0;
+    
+    const initScreen = document.getElementById('init-screen');
+    const bootScreen = document.getElementById('boot-screen');
+    const appScreen = document.getElementById('app-screen');
+    const pwdModal = document.getElementById('password-modal');
+    const pwdInput = document.getElementById('pwd-input');
+    const pwdError = document.getElementById('pwd-error');
+    const fileContentDiv = document.getElementById('file-content');
+    const screamerOverlay = document.getElementById('screamer-overlay');
+
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            startAmbient();
+        }
+    }
+
+    function playBeep(freq = 400, type = 'square', dur = 0.05, vol = 0.05) {
+        if (!audioCtx) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + dur);
+    }
+
+    function startAmbient() {
+        if (!audioCtx) return;
+        const bufferSize = audioCtx.sampleRate * 2;
+        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        let lastOut = 0;
+        for (let i = 0; i < bufferSize; i++) {
+            let white = Math.random() * 2 - 1;
+            data[i] = (lastOut + (0.02 * white)) / 1.02;
+            lastOut = data[i];
+            data[i] *= 3.5;
+        }
+        const noise = audioCtx.createBufferSource();
+        noise.buffer = buffer;
+        noise.loop = true;
+
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.value = 100;
+
+        const lfo = audioCtx.createOscillator();
+        lfo.type = 'sine';
+        lfo.frequency.value = 0.1;
+        const lfoGain = audioCtx.createGain();
+        lfoGain.gain.value = 50;
+        lfo.connect(lfoGain);
+        lfoGain.connect(filter.frequency);
+        lfo.start();
+
+        const masterGain = audioCtx.createGain();
+        masterGain.gain.value = 0.8;
+
+        noise.connect(filter);
+        filter.connect(masterGain);
+        masterGain.connect(audioCtx.destination);
+        noise.start();
+    }
+
+    function startSystem() {
+        initAudio();
+        initScreen.classList.add('hidden');
+        bootScreen.classList.remove('hidden');
+        bootScreen.classList.add('flex');
+        playBeep(200, 'sawtooth', 0.5, 0.1);
+        runBoot();
+        startGlitchLoop();
+    }
+
+    function runBoot() {
+        if (bootStep < bootSequence.length) {
+            const line = document.createElement('div');
+            line.className = 'mb-2';
+            bootScreen.appendChild(line);
+            const fullText = bootSequence[bootStep];
+            let i = 0;
+            const typeInterval = setInterval(() => {
+                line.textContent = fullText.substring(0, i + 1) + (i < fullText.length - 1 ? ' █' : '');
+                playBeep(800 + Math.random()*200, 'square', 0.02, 0.02);
+                i++;
+                if (i === fullText.length) {
+                    clearInterval(typeInterval);
+                    line.textContent = fullText;
+                    bootStep++;
+                    setTimeout(runBoot, 800);
+                }
+            }, 30);
+        } else {
+            bootScreen.classList.remove('flex');
+            bootScreen.classList.add('hidden');
+            appScreen.classList.remove('hidden');
+            appScreen.classList.add('flex');
+            treeItemCount = 0;
+            renderTree();
+        }
+    }
+
+    function startGlitchLoop() {
+        setInterval(() => {
+            if (Math.random() > 0.96) {
+                document.body.classList.add('sys-glitch');
+                playBeep(150, 'sawtooth', 0.1, 0.1);
+                setTimeout(() => { document.body.classList.remove('sys-glitch'); }, 100 + Math.random() * 200);
+            }
+        }, 2000);
+    }
+
+    function handleItemClick(id, isFolderToggle = false) {
+        const item = fileSystem.find(f => f.id === id);
+        if (!item) return;
+
+        if (item.password && !unlockedItems.includes(item.id)) {
+            playBeep(200, 'sawtooth', 0.2, 0.1);
+            pendingUnlockId = id;
+            pwdInput.value = '';
+            pwdError.classList.add('hidden');
+            pwdModal.classList.remove('hidden');
+            pwdModal.classList.add('flex');
+            pwdInput.focus();
+            return;
+        }
+
+        if (isFolderToggle && item.type === 'folder') {
+            playBeep(600, 'sine', 0.05, 0.03);
+            if (expandedFolders.includes(id)) {
+                expandedFolders = expandedFolders.filter(f => f !== id);
+            } else {
+                expandedFolders.push(id);
+            }
+            treeItemCount = 0;
+            renderTree();
+        } else if (item.type === 'file') {
+            playBeep(900, 'sine', 0.05, 0.03);
+            selectedFileId = id;
+            treeItemCount = 0;
+            renderTree();
+            renderFile();
+        }
+    }
+
+    pwdInput.addEventListener('keydown', (e) => {
+        playBeep(400, 'triangle', 0.01, 0.01);
+        if (e.key === 'Enter') {
+            const item = fileSystem.find(f => f.id === pendingUnlockId);
+            if (item && item.password.toUpperCase() === pwdInput.value.toUpperCase()) {
+                playBeep(800, 'square', 0.1, 0.1);
+                playBeep(1200, 'square', 0.1, 0.1);
+                unlockedItems.push(item.id);
+                pwdModal.classList.add('hidden');
+                pwdModal.classList.remove('flex');
+                handleItemClick(item.id, true);
+            } else {
+                playBeep(150, 'sawtooth', 0.3, 0.1);
+                pwdError.classList.remove('hidden');
+                pwdInput.value = '';
+            }
+        } else if (e.key === 'Escape') {
+            closePwdModal();
+        }
+    });
+
+    function closePwdModal() {
+        pwdModal.classList.add('hidden');
+        pwdModal.classList.remove('flex');
+        pendingUnlockId = null;
+    }
+
+    document.addEventListener('click', function(e) {
+        if (!e.target || !e.target.classList) return;
+        
+        if (e.target.classList.contains('arg-glitch-link')) {
+            playBeep(100, 'sawtooth', 0.8, 0.2);
+            document.body.classList.add('sys-glitch', 'invert', 'sepia', 'hue-rotate-[300deg]');
+            setTimeout(() => { document.body.classList.remove('sys-glitch', 'invert', 'sepia', 'hue-rotate-[300deg]'); }, 1000);
+        }
+        
+        if (e.target.classList.contains('arg-reveal')) {
+            playBeep(100, 'sawtooth', 0.8, 0.3);
+            document.body.classList.add('sys-glitch', 'invert', 'sepia', 'hue-rotate-[300deg]');
+            setTimeout(() => { document.body.classList.remove('sys-glitch', 'invert', 'sepia', 'hue-rotate-[300deg]'); }, 500);
+            const secret = e.target.getAttribute('data-secret');
+            fileContentDiv.innerHTML = secret;
+            setupDynamics();
+        }
+
+        if (e.target.classList.contains('arg-screamer')) {
+            playBeep(50, 'sawtooth', 1.5, 1);
+            screamerOverlay.classList.remove('hidden');
+            screamerOverlay.classList.add('screamer-flash');
+            setTimeout(() => { 
+                screamerOverlay.classList.add('hidden'); 
+                screamerOverlay.classList.remove('screamer-flash');
+            }, 1500);
+        }
+        
+        if (e.target.classList.contains('arg-audio-log')) {
+            const btn = e.target;
+            const output = btn.nextElementSibling;
+            const lines = btn.getAttribute('data-text').split('|');
+            let idx = 0;
+            btn.disabled = true;
+            btn.classList.add('opacity-50');
+            output.innerHTML = '';
+            playBeep(200, 'noise', lines.length * 2, 0.05);
+            const intId = setInterval(() => {
+                if (idx < lines.length) {
+                    output.innerHTML += '<div>' + lines[idx] + '</div>';
+                    playBeep(600, 'triangle', 0.1, 0.05);
+                    idx++;
+                } else {
+                    clearInterval(intId);
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-50');
+                }
+            }, 2000);
+            dynamicIntervals.push(intId);
+        }
+    });
+
+    document.addEventListener('mousedown', function(e) {
+        if (!e.target || !e.target.classList) return;
+        if (e.target.classList.contains('arg-scanner')) {
+            scannerProg = 0;
+            e.target.style.setProperty('--progress', '0%');
+            scannerInt = setInterval(() => {
+                scannerProg += 5;
+                e.target.style.setProperty('--progress', scannerProg + '%');
+                playBeep(300 + (scannerProg * 5), 'sine', 0.05, 0.05);
+                if (scannerProg >= 100) {
+                    clearInterval(scannerInt);
+                    playBeep(150, 'sawtooth', 0.5, 0.2);
+                    e.target.innerHTML = e.target.getAttribute('data-secret');
+                    e.target.classList.remove('arg-scanner', 'cursor-pointer');
+                    e.target.classList.add('text-red-500');
+                    e.target.style.setProperty('--progress', '0%');
+                }
+            }, 100);
+        }
+    });
+
+    document.addEventListener('mouseup', stopScanner);
+    document.addEventListener('mouseleave', stopScanner);
+
+    function stopScanner(e) {
+        if (scannerInt) {
+            clearInterval(scannerInt);
+            scannerInt = null;
+            if (scannerProg < 100) {
+                document.querySelectorAll('.arg-scanner').forEach(el => el.style.setProperty('--progress', '0%'));
+                playBeep(200, 'sawtooth', 0.1, 0.05);
+            }
+            scannerProg = 0;
+        }
+    }
+
+    document.addEventListener('input', function(e) {
+        if (!e.target || !e.target.classList) return;
+
+        if (e.target.classList.contains('arg-possessed')) {
+            const msg = e.target.getAttribute('data-msg');
+            const currLen = e.target.value.length;
+            if (currLen <= msg.length) {
+                e.target.value = msg.substring(0, currLen);
+            } else {
+                e.target.value = msg;
+            }
+            playBeep(300, 'sawtooth', 0.05, 0.05);
+        }
+        
+        if (e.target.classList.contains('interro-input')) {
+            const container = e.target.closest('.arg-interrogation');
+            const answer = container.getAttribute('data-answer');
+            const target = container.getAttribute('data-target');
+            if (e.target.value.toUpperCase() === answer.toUpperCase()) {
+                playBeep(1000, 'sine', 0.2, 0.1);
+                e.target.disabled = true;
+                const targetEl = document.getElementById(target);
+                if (targetEl) targetEl.classList.remove('hidden');
+            }
+        }
+    });
+
+    function cleanupDynamics() {
+        dynamicIntervals.forEach(clearInterval);
+        dynamicIntervals = [];
+    }
+
+    function setupDynamics() {
+        const paranoias = document.querySelectorAll('.arg-paranoia');
+        paranoias.forEach(p => {
+            const orig = p.textContent;
+            const truth = p.getAttribute('data-true');
+            const intId = setInterval(() => {
+                if (Math.random() > 0.8) {
+                    p.textContent = truth;
+                    p.classList.add('text-red-500', 'font-bold');
+                    setTimeout(() => { p.textContent = orig; p.classList.remove('text-red-500', 'font-bold'); }, 200);
+                }
+            }, 3000);
+            dynamicIntervals.push(intId);
+        });
+
+        const radars = document.querySelectorAll('.arg-radar');
+        radars.forEach(r => {
+            let dist = 35;
+            const intId = setInterval(() => {
+                dist -= Math.floor(Math.random() * 4);
+                if(dist < 0) dist = 0;
+                r.textContent = "[RADAR] ANOMALIE DÉTECTÉE À : " + dist + " MÈTRES";
+                playBeep(1200 - (dist*10), 'sine', 0.1, 0.05);
+            }, 1500);
+            dynamicIntervals.push(intId);
+        });
+
+        const ghosts = document.querySelectorAll('.arg-ghost-typing');
+        ghosts.forEach(g => {
+            const text = g.getAttribute('data-text');
+            g.textContent = '';
+            let i = 0;
+            const intId = setInterval(() => {
+                if (i < text.length) {
+                    g.textContent += text.charAt(i);
+                    playBeep(400, 'triangle', 0.05, 0.02);
+                    i++;
+                } else {
+                    clearInterval(intId);
+                }
+            }, 100);
+            dynamicIntervals.push(intId);
+        });
+
+        const countdowns = document.querySelectorAll('.arg-countdown');
+        countdowns.forEach(c => {
+            let time = parseInt(c.getAttribute('data-time') || '60');
+            const intId = setInterval(() => {
+                time--;
+                if(time < 0) time = 0;
+                const m = Math.floor(time / 60).toString().padStart(2, '0');
+                const s = (time % 60).toString().padStart(2, '0');
+                c.textContent = "TEMPS RESTANT : " + m + ":" + s;
+                if (time <= 10) playBeep(200, 'sawtooth', 0.1, 0.1);
+            }, 1000);
+            dynamicIntervals.push(intId);
+        });
+    }
+
+    function createTreeHtml(parentId, level = 0) {
+        const items = fileSystem.filter(f => f.parentId === parentId);
+        let html = '';
+        items.forEach(item => {
+            if (item.isGhost) return;
+
+            const isExpanded = expandedFolders.includes(item.id);
+            const isSelected = selectedFileId === item.id;
+            const padding = level * 16;
+            const delay = treeItemCount * 0.05;
+            treeItemCount++;
+            
+            let lockHtml = '';
+            if (item.password) {
+                if (unlockedItems.includes(item.id)) {
+                    lockHtml = '<i data-lucide="unlock" class="w-3 h-3 ml-2 opacity-50"></i>';
+                } else {
+                    lockHtml = '<i data-lucide="lock" class="w-3 h-3 ml-2 text-red-500"></i>';
+                }
+            }
+
+            if (item.type === 'folder') {
+                html += '<div class="tree-anim" style="margin-left: ' + padding + 'px; animation-delay: ' + delay + 's;">' +
+                    '<div class="folder-item" onclick="handleItemClick(\'' + item.id + '\', true)">' +
+                        '<i data-lucide="' + (isExpanded ? 'chevron-down' : 'chevron-right') + '" class="chevron"></i>' +
+                        '<i data-lucide="folder" class="icon"></i>' +
+                        '<span class="truncate">' + item.name + '</span>' +
+                        lockHtml +
+                    '</div>' +
+                    (isExpanded ? createTreeHtml(item.id, level + 1) : '') +
+                '</div>';
+            } else {
+                html += '<div class="tree-anim" style="margin-left: ' + padding + 'px; animation-delay: ' + delay + 's;">' +
+                    '<div class="folder-item ' + (isSelected ? 'selected' : '') + '" onclick="handleItemClick(\'' + item.id + '\')">' +
+                        '<span style="width: 20px; display: inline-block;"></span>' +
+                        '<i data-lucide="file-text" class="icon"></i>' +
+                        '<span class="truncate">' + item.name + '</span>' +
+                        lockHtml +
+                    '</div>' +
+                '</div>';
+            }
+        });
+        return html;
+    }
+
+    function renderTree() {
+        document.getElementById('tree-container').innerHTML = createTreeHtml(null);
+        lucide.createIcons();
+    }
+
+    function renderFile() {
+        cleanupDynamics();
+        const file = fileSystem.find(f => f.id === selectedFileId);
+        const fileHeader = document.getElementById('file-header');
+        const noFile = document.getElementById('no-file');
+        
+        if (file) {
+            document.getElementById('file-title').textContent = file.name;
+            document.getElementById('file-date').textContent = 'DERNIÈRE MODIFICATION: ' + file.date;
+            fileContentDiv.innerHTML = file.content || '';
+            fileHeader.classList.remove('hidden');
+            fileContentDiv.classList.remove('hidden');
+            noFile.classList.add('hidden');
+
+            setupDynamics();
+
+            if (file.content && file.content.includes('[FATAL_EXCEPTION_')) {
+                playBeep(100, 'sawtooth', 0.8, 0.2);
+                document.body.classList.add('sys-glitch', 'invert', 'sepia', 'hue-rotate-[300deg]');
+                setTimeout(() => { document.body.classList.remove('sys-glitch', 'invert', 'sepia', 'hue-rotate-[300deg]'); }, 1000);
+            }
+            lucide.createIcons();
+        } else {
+            fileHeader.classList.add('hidden');
+            fileContentDiv.classList.add('hidden');
+            noFile.classList.remove('hidden');
+        }
+    }
+</script>
+</body>
+</html>
