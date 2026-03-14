@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>U.S.G. BIOLAB - LOGS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { margin: 0; background-color: #020202; color: #1a9e1a; font-family: 'Courier New', Courier, monospace; overflow: hidden; }
+        .crt-noise { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-image: url('data:image/svg+xml,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noise"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noise)"/%3E%3C/svg%3E'); opacity: 0.05; pointer-events: none; z-index: 50; }
+        .scanlines { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(rgba(18,16,16,0) 50%, rgba(0,0,0,0.25) 50%); background-size: 100% 4px; pointer-events: none; z-index: 40; }
+        .folder-item { cursor: pointer; padding: 4px 8px; display: flex; align-items: center; }
+        .folder-item:hover { background-color: rgba(26, 158, 26, 0.2); }
+        .folder-item.selected { background-color: rgba(26, 158, 26, 0.3); }
+        .icon { width: 16px; height: 16px; margin-right: 8px; }
+        .chevron { width: 16px; height: 16px; margin-right: 4px; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #050605; }
+        ::-webkit-scrollbar-thumb { background: #1a9e1a; }
+        
+        .sys-glitch { animation: sysGlitchAnim 0.2s cubic-bezier(.25, .46, .45, .94) both infinite; filter: invert(0.8) sepia(1) hue-rotate(300deg); }
+        .screamer-flash { position: fixed; inset: 0; background: radial-gradient(circle, rgba(139,0,0,0.6) 0%, rgba(0,0,0,1) 100%); z-index: 9999; display: flex; align-items: center; justify-content: center; pointer-events: none; animation: screamerFade 1.5s forwards; }
+        .screamer-face { color: #ff0000; font-size: 10vw; font-weight: bold; white-space: pre; text-align: center; text-shadow: 0 0 20px #ff0000; animation: argShake 0.1s infinite; }
+        
+        @keyframes sysGlitchAnim { 0% { transform: translate(0); } 20% { transform: translate(-5px, 5px); } 40% { transform: translate(-5px, -5px); } 60% { transform: translate(5px, 5px); } 80% { transform: translate(5px, -5px); } 100% { transform: translate(0); } }
+        @keyframes screamerFade { 0% { opacity: 0; } 5% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; } }
+        @keyframes argShake { 0% { transform: translate(0, 0); } 25% { transform: translate(-2px, 2px); } 50% { transform: translate(2px, -2px); } 75% { transform: translate(-2px, -2px); } 100% { transform: translate(2px, 2px); } }
+        @keyframes fadeInItem { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes bleedAnim { 0% { color: inherit; text-shadow: none; transform: translateY(0); opacity: 1; } 15% { color: #8b0000; text-shadow: 0 5px 10px #8b0000; transform: translateY(10px); opacity: 1; } 100% { color: #8b0000; text-shadow: 0 20px 20px #8b0000; transform: translateY(100vh); opacity: 0; } }
+        
+        .tree-anim { opacity: 0; animation: fadeInItem 0.2s forwards; }
+        .arg-shake { display: inline-block; animation: argShake 0.2s infinite; }
+        .arg-uv { opacity: 0.02; transition: opacity 0.5s; cursor: help; border-bottom: 1px dashed rgba(26,158,26,0.3); }
+        .arg-uv:hover { opacity: 1; }
+        .arg-redacted { background-color: #1a9e1a; color: #1a9e1a; cursor: pointer; transition: color 0.2s; }
+        .arg-redacted:hover { color: #000; }
+        .arg-glitch-link { text-decoration: underline; text-decoration-style: dashed; cursor: pointer; }
+        .arg-glitch-link:hover { background-color: #1a9e1a; color: #000; }
+        .arg-bleeding { display: inline-block; animation: bleedAnim 4s forwards; animation-delay: 1.5s; }
+        
+        .arg-scanner::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: var(--progress, 0%); background: rgba(255,0,0,0.3); transition: width 0.1s linear; pointer-events: none; }
+        .arg-reveal:hover { background-color: #1a9e1a; color: #000; }
+    </style>
+</head>
+<body>
+<div class="crt-noise"></div>
+<div class="scanlines"></div>
+
+<div id="init-screen" class="min-h-screen flex items-center justify-center text-xl relative z-30 cursor-pointer hover:bg-[#1a9e1a]/10 transition-colors" onclick="startSystem()">
+    <div class="border border-[#1a9e1a] p-8 text-center animate-pulse">
+        <i data-lucide="power" class="w-12 h-12 mx-auto mb-4"></i>
+        <p>INITIALISER LE TERMINAL</p>
+    </div>
+</div>
+
+<div id="boot-screen" class="hidden min-h-screen p-8 flex-col items-start justify-center text-xl relative z-30"></div>
+
+<div id="app-screen" class="hidden min-h-screen flex-col relative z-30 selection:bg-[#1a9e1a] selection:text-black">
+    <header class="border-b border-[#1a9e1a]/30 p-4 flex items-center bg-[#0a0c0a]">
+        <i data-lucide="terminal" class="mr-4 animate-pulse"></i>
+        <div>
+            <h1 class="text-xl font-bold tracking-widest">U.S.G. BIOLAB - SYSTÈME D'ARCHIVAGE</h1>
+            <p class="text-xs opacity-70">UTILISATEUR: WELBERT AESKER | ACCRÉDITATION: NIVEAU 4</p>
+        </div>
+    </header>
+    <div class="flex flex-1 overflow-hidden">
+        <aside class="w-80 border-r border-[#1a9e1a]/30 bg-[#050605] flex flex-col">
+            <div class="p-4 border-b border-[#1a9e1a]/30 text-sm font-bold opacity-70">ARBORESCENCE SYSTÈME</div>
+            <div id="tree-container" class="flex-1 overflow-y-auto p-4 text-sm space-y-1"></div>
+        </aside>
+        <main class="flex-1 bg-[#0a0c0a] flex flex-col shadow-[inset_0_0_100px_rgba(0,0,0,0.9)] relative overflow-hidden">
+            <div id="file-header" class="p-6 border-b border-[#1a9e1a]/20 hidden">
+                <h2 id="file-title" class="text-2xl font-bold"></h2>
+                <p id="file-date" class="text-xs opacity-50 mt-1"></p>
+            </div>
+            <div id="file-content" class="p-6 flex-1 overflow-y-auto whitespace-pre-wrap leading-relaxed opacity-90 text-lg hidden pb-32"></div>
+            <div id="no-file" class="flex-1 flex flex-col items-center justify-center opacity-30">
+                <i data-lucide="terminal" class="w-16 h-16 mb-4"></i>
+                <p>SÉLECTIONNEZ UN FICHIER DANS L'ARBORESCENCE</p>
+            </div>
+        </main>
+    </div>
+</div>
+
+<div id="password-modal" class="hidden fixed inset-0 bg-black/90 z-50 flex-col items-center justify-center p-8">
+    <div class="border border-[#1a9e1a] bg-[#050605] p-6 max-w-md w-full shadow-[0_0_30px_rgba(26,158,26,0.2)] relative">
+        <button onclick="closePwdModal()" class="absolute top-2 right-2 text-[#1a9e1a] hover:text-white">
+            <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+        <p class="mb-4 text-center font-bold">ACCRÉDITATION REQUISE</p>
+        <div class="flex items-center">
+            <span class="mr-4 text-xl">&gt;</span>
+            <input type="password" id="pwd-input" class="bg-transparent border-b border-[#1a9e1a] text-[#1a9e1a] outline-none flex-1 text-center font-mono text-xl tracking-widest uppercase" autocomplete="off">
+        </div>
+        <p id="pwd-error" class="text-red-500 text-xs mt-4 text-center hidden font-bold tracking-widest">ACCÈS REFUSÉ</p>
+    </div>
+</div>
+<div id="screamer-overlay" class="hidden">
+    <pre class="screamer-face">
+  ▄⣶▄
+ ▄⣿██⣿▄
+▄⣿⣿⣿⣿▄
+⣿⣿⣿⣿⣿
+▀⣿⣿⣿⣿▀
+ ▀⠛⠛⠛▀
+    </pre>
+</div>
+
+<script>
+    const fileSystem = [
+  {
+    "id": "root",
+    "name": "C:\\ENTHROPIA",
+    "type": "folder",
+    "parentId": null,
+    "isGhost": false,
+    "password": ""
+  },
+  {
+    "id": "item_1773504193661",
+    "name": "Evaluations préliminaires",
+    "type": "folder",
+    "parentId": "root",
+    "date": "14/03/2026 17:03:13",
+    "password": "",
+    "isGhost": false
+  },
+  {
+    "id": "item_1773453455035",
+    "name": "Rapports",
+    "type": "folder",
+    "parentId": "root",
+    "date": "14/03/2026 02:57:35",
+    "password": "",
+    "isGhost": true
+  },
+  {
+    "id": "item_1773453467510",
+    "name": "TOP_Secret",
+    "type": "folder",
+    "parentId": "root",
+    "date": "14/03/2026 02:57:47",
+    "password": "HeRETIC",
+    "isGhost": true
+  },
+  {
+    "id": "item_1773454556628",
+    "name": "Rapport audio du 29/09/29",
+    "type": "file",
+    "parentId": "item_1773453455035",
+    "content": "Chercheur : <span class=\"arg-paranoia\" data-true=\"JE TE HAIS\">WELBERT AESKER</span>\n\nLe sujet du projet [SAVIOR] as enfin commencé son développement et envoie déja des messages via le système de transcription de l'ordinateur central... <span class=\"arg-paranoia\" data-true=\"VOUS AVEZ ÉTÉES PREVENUS\">Malheureusement rien ne s'est passé comme prévu</span>\n\n\n<button class=\"arg-audio-log border border-[#1a9e1a] px-3 py-2 flex items-center hover:bg-[#1a9e1a]/20\" data-text=\"<span class='text-yellow-500'>Welbert : Bonjour belle aux bois dormant bien reveillé ?</span>|<span class='text-red-500'>SAVIOR : Que suis-je.</span>|<span class='text-yellow-500'>Welbert : Tu es magnifique, la création ultime</span>|<span class='text-red-500'>SAVIOR : QUE SUIS-JE !</span>|<span class='text-yellow-500'>Welbert : SAVIOR calme toi ! Tout va bien</span>|<span class='text-green-500'>??? : Professeur ! Vous devez sortir de là le confinement va rompre !</span>| Bruit de verre qui se brise,course effrenée\" data-reveal=\"1\">\n<span class=\"mr-2 font-bold\">▶</span> LECTURE BANDE AUDIO\n</button>\n<div class=\"audio-output mt-4 text-[#1a9e1a]/80 min-h-[50px]\"></div>\n\n<div id=\"1\" class=\"hidden\">\n<input type=\"text\" class=\"arg-possessed bg-transparent border-b border-red-500 text-red-500 outline-none w-full my-2\" data-msg=\"UN MONSTRE\" placeholder=\"QUE SUIS-JE\">\n\n\n</div>",
+    "date": "29/09/2029 14:19:59",
+    "password": "",
+    "isGhost": false
+  },
+  {
+    "id": "item_1773460569391",
+    "name": "Rapport sur l'incident du 29/09",
+    "type": "file",
+    "parentId": "item_1773453455035",
+    "content": "ENTHROPIA BIOGENICS --- Rapport d'incident et premier avertissement\n\nProfesseur AESKER,\nNous sommes <span class=\"arg-paranoia\" data-true=\"SATISFAITS\">profondéments déçus</span> des résultats obtenus lors du projet <span class=\"arg-screamer cursor-pointer text-red-500\">SAVIOR</span>. Nous sommes donc dans l'obligation de vous adresser votre premier avertissement, et vous savez que conformément au paragraphe 4 alinea 5 de votre contrat cette première infraction force <span class=\"arg-paranoia\" data-true=\"LES OBSERVATEUR\">le conseil d'administration</span> a envoyer un agent pour superviser les prochaines étapes du projet. Cela me peine de vous voir faire des erreurs aussi évitables professeur. Le conseil espère que ce seras la première et dernière fois que vous ferez une erreur. Cet incident a énormément coûté a Enthropia, que ce soit en ressource humaine et financière. Le conseil m'as également chargé de vous rappeller qu'une deuxième infraction viendrait a nous contraindre de couper les fonds pour le projet <span class=\"arg-paranoia\" data-true=\"ILS ME VEULENT POUR EUX\">SAVIOR</span>. Nous savons tout deux a quel point vous tenez a la réussite de ce projet. Vous pensez vraiment <span class='text-red-500'>qu'elle aurait voulu ça ?</span>\n\nEn espérant ne pas avoir a vous contacter de nouveau\n\nMarie Young\n\n--- ENTHROPIA BIOGENICS, POUR UN MONDE MEILLEUR ---",
+    "date": "05/10/2029 10:20:45",
+    "password": "",
+    "isGhost": false
+  },
+  {
+    "id": "item_1773504225700",
+    "name": "Projet_Savior.pdf",
+    "type": "file",
+    "parentId": "item_1773504193661",
+    "content": "<span class=\"arg-ghost-typing\" data-text=\"Je serais clément, votre curiosité me distrait. Si vous voulez aller plus loin... Souvenez vous de CAPTIC\"></span>\n\nMEMORANDUM INTERNE - ENTHROPIA BIOGENICS\nDE : Pr. Welbert Aesker, Directeur de Recherche (Secteur 7)\nÀ : Conseil d'Administration\n\nOBJET : Justification des ressources pour le Projet SAVIOR.\n\nLe monde dans lequel nous vivont n'est plus fait pour nous, il nous faut un être capable de nous protéger et de ramener le monde a la raison, c'est pour cela que je vous proposes le projet SAVIOR\n\nLe Projet SAVIOR consiste en la conception d'un être élevé purement en laboratoire. Aucun élément n'est laissé au hasard, nous pouvons jouer avec les règles naturelles autant que nous le souhaitons. Le Sujet n'est pas humain. Il n'a aucun passé, aucun besoin biologique. C'est une architecture parfaite, conçue pour abriter l'indicible. Ainsi nous construirons notre <span class=\"arg-paranoia\" data-true=\"DESTRUCTION\">sauveteur</span>.",
+    "date": "29/09/2028 09:19:49",
+    "password": "",
+    "isGhost": false
+  },
+  {
+    "id": "item_1773505910225",
+    "name": "Budgets_alloués.csv",
+    "type": "file",
+    "parentId": "item_1773504193661",
+    "content": "DATE       | DÉPARTEMENT | CODE   | DESCRIPTION                                                | MONTANT (€) | STATUT   | APP.\n----------------------------------------------------------------------------------------------------------------------------------\n15/10/2028 | SECTEUR_7   | EQP-01 | Cuve de stase B-4 (Titane/Verre balistique)                |     450 000 | APPROUVÉ | M.YOUNG\n16/10/2028 | SECTEUR_8   | OTT-ER | Implants pour <span class=\"arg-redacted\">loutres</span>                                      |   1 200 000 | APPROUVÉ | <span class=\"arg-redacted\">A.GRAY</span>\n29/10/2028 | SECTEUR_7   | CHM-04 | <span class=\"arg-paranoia\" data-true=\"ILS VOULAIENT JOUER A DIEU\">Composés divers</span>                                            |     850 000 | APPROUVÉ | W.AESKER\n11/11/2028 | R.H.        | NDA-99 | Frais de succession - Famille Vane (Accord non-divulgation)|     500 000 | APPROUVÉ | M.YOUNG\n12/12/2028 | SECTEUR_7   | CHM-04 | Pièces de rechange (Chimiques)                             |  1 2000 500 | APPROUVÉ | W.AESKER\n24/12/2028 | R.H.        | XMA-05 | Sapin + cadeaux pour les employés                          |      45 000 | APPROUVÉ | M.YOUNG\n07/03/2029 | SECTEUR_7   | STS-01 | Ressources biologique diverses pour le projet <span class=\"arg-shake\"><span class='text-red-500'>CAPTIC</span></span>       |     195 000 | APPROUVÉ | W.AESKER",
+    "date": "14/03/2026 17:31:50",
+    "password": "",
+    "isGhost": false
+  },
+  {
+    "id": "item_1773508435072",
+    "name": "Composition",
+    "type": "folder",
+    "parentId": "item_1773504193661",
+    "date": "14/03/2026 18:13:55",
+    "password": "CAPTIC",
+    "isGhost": false
+  },
+  {
+    "id": "item_1773507200469",
+    "name": "Squelette.txt",
+    "type": "file",
+    "parentId": "item_1773508435072",
+    "content": "RAPPORT DE SYNTHÈSE OSTÉOLOGIQUE — UNITÉ S-01\n\nL'ossature de <span class='text-red-500'>l'UNITÉ S-01</span> repose sur une matrice de <span class='text-yellow-500'>Nickel-Titane (NiTi)</span> à phase amorphe, éliminant toute fatigue structurelle. Les travées osseuses, renforcées par un entrelacs de <span class='text-yellow-500'>Carbonne et de Bore</span>, sont encapsulées dans une gangue de <span class='text-yellow-500'>Calcium synthétique micro-poreux.</span> L'esthétique finale évoque une relique archéologique : un mariage <span class=\"arg-shake\"><span class='text-red-500'>contre-nature</span></span> entre le calcaire millénaire et un métal <span class=\"arg-shake\"><span class='text-red-500'>abyssal</span></span>.\n\nNote du technicien chef : \"Le plus perturbant, c'est <span class=\"arg-paranoia\" data-true=\"LES CRIS\">le silence</span>. Les articulations en <span class='text-yellow-500'>Chrome-Cobalt et Zircone</span> ne produisent aucun craquement, aucun frottement. Quand il se déplacera, on n'entendra pas le poids d'un corps, mais le glissement d'un <span class='text-red-500'>scalpel </span>dans l'air. Nous avons gravé des micro-canaux dans le Calcium pour simuler la repousse osseuse, mais c'est un <span class=\"arg-shake\"><span class='text-red-500'>mensonge</span></span> minéral. Ce n'est pas un squelette fait pour soutenir la vie, c'est une cage thoracique conçue pour contenir quelque chose qui n'a pas besoin de respirer. <span class='text-red-500'>On a l'impression d'avoir forgé un autel en titane, et maintenant, on attend que le sang des autres vienne le baptiser.</span>\"\n\n<span class=\"arg-paranoia\" data-true=\"JE SUIS UN MONSTRE\">C'est une création parfaite</span>",
+    "date": "09/03/2029 17:24:38",
+    "password": "",
+    "isGhost": false
+  },
+  {
+    "id": "item_1773505478739",
+    "name": "Organes.txt",
+    "type": "file",
+    "parentId": "item_1773508435072",
+    "content": "RAPPORT DE SYNTHÈSE VISCÉRALE — UNITÉ S-01\n\n<span class='text-red-500'>L'UNITÉ S-01</span> est actuellement maintenue dans un état de quiescence métabolique profonde. Sa température corporelle est stabilisée à 12°C par une solution de transport enrichie en <span class='text-yellow-500'>Potassium (K) et en Magnésium (Mg)</span>, empêchant toute contraction musculaire involontaire et réduisant l'activité cardiaque à une pulsation résiduelle toutes les quarante secondes.\n\nLe liquide d'incubation est une suspension colloïdale saturée <span class='text-yellow-500'>d'Iode (I) et de Sélénium (Se)</span>, agissant comme un bouclier contre toute dégradation oxydative prématurée. La peau, bien que biologiquement vivante, présente une teinte livide, presque translucide, laissant deviner le réseau de veines chargées de Cuivre et de Fer qui attendent l'ordre chimique de s'embraser.\n\nNote du technicien chef : \"C’est dans ce silence que <span class='text-red-500'>S-01</span> est le plus terrifiant. Il flotte dans le réservoir comme un saint de vitrail <span class='text-red-500'>brisé</span>, suspendue par des tubulures qui injectent lentement <span class='text-yellow-500'>des sels de Chrome et de Soufre</span> pour tanner ses tissus internes. Le plus insoutenable, ce sont les erreurs de perception. Hier, en nettoyant la paroi de verre, j'aurais juré que ses yeux ces globes opaques saturés de <span class='text-yellow-500'>Soufre</span> ont pivoté sous ses paupières translucides pour suivre mon mouvement. Ce n'est pas biologiquement possible. Son cerveau est censé être une friche minérale, un désert de <span class='text-yellow-500'>Lithium</span> sans une seule pensée. Et pourtant, il y a ce sentiment persistant d'être observé par une chose qui n'est pas encore née. \nQuand on doit ajuster les capteurs, la peau a la texture d'un cuir froid et humide. Elle ne cède pas sous le doigt comme une chair humaine ; elle résiste avec une fermeté minérale due à la saturation en <span class='text-yellow-500'>Silicium</span>. On a l'impression de toucher une statue qui simule la température de la mort. On attend l'éveil avec une fascination qui confine à la nausée. On sait que lorsqu'on injectera le catalyseur de <span class='text-yellow-500'>Sodium</span>, ce ne sera pas un réveil, mais une activation. Elle ne va pas 'ouvrir les yeux', elle va s'allumer. <span class='text-red-500'>Et dans ce réservoir, à travers la vitre, j'ai parfois l'impression que c'est nous qui sommes enfermés à l'extérieur, dans un monde trop fragile pour ce qui s'apprête à sortir de là.</span>\"",
+    "date": "09/03/2029 17:24:38",
+    "password": "",
+    "isGhost": false
+  }
+];
+    let expandedFolders = ['root'];
+    let unlockedItems = [];
+    let selectedFileId = null;
+    let audioCtx = null;
+    let treeItemCount = 0;
+    let pendingUnlockId = null;
+    let dynamicIntervals = [];
+    let scannerInt = null;
+    let scannerProg = 0;
+
+    const bootSequence = [
+        "ÉTABLISSEMENT DE LA CONNEXION SÉCURISÉE...",
+        "CONTOURNEMENT DES PROTOCOLES DE SÉCURITÉ... OK",
+        "DÉCRYPTAGE DE L'ARCHIVE DU SECTEUR 7... OK",
+        "BIENVENUE, WELBERT AESKER."
+    ];
+    let bootStep = 0;
+    
+    const initScreen = document.getElementById('init-screen');
+    const bootScreen = document.getElementById('boot-screen');
+    const appScreen = document.getElementById('app-screen');
+    const pwdModal = document.getElementById('password-modal');
+    const pwdInput = document.getElementById('pwd-input');
+    const pwdError = document.getElementById('pwd-error');
+    const fileContentDiv = document.getElementById('file-content');
+    const screamerOverlay = document.getElementById('screamer-overlay');
+
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            startAmbient();
+        }
+    }
+
+    function playBeep(freq = 400, type = 'square', dur = 0.05, vol = 0.05) {
+        if (!audioCtx) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + dur);
+    }
+
+    function startAmbient() {
+        if (!audioCtx) return;
+        const bufferSize = audioCtx.sampleRate * 2;
+        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        let lastOut = 0;
+        for (let i = 0; i < bufferSize; i++) {
+            let white = Math.random() * 2 - 1;
+            data[i] = (lastOut + (0.02 * white)) / 1.02;
+            lastOut = data[i];
+            data[i] *= 3.5;
+        }
+        const noise = audioCtx.createBufferSource();
+        noise.buffer = buffer;
+        noise.loop = true;
+
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.value = 100;
+
+        const lfo = audioCtx.createOscillator();
+        lfo.type = 'sine';
+        lfo.frequency.value = 0.1;
+        const lfoGain = audioCtx.createGain();
+        lfoGain.gain.value = 50;
+        lfo.connect(lfoGain);
+        lfoGain.connect(filter.frequency);
+        lfo.start();
+
+        const masterGain = audioCtx.createGain();
+        masterGain.gain.value = 0.8;
+
+        noise.connect(filter);
+        filter.connect(masterGain);
+        masterGain.connect(audioCtx.destination);
+        noise.start();
+    }
+
+    function startSystem() {
+        initAudio();
+        initScreen.classList.add('hidden');
+        bootScreen.classList.remove('hidden');
+        bootScreen.classList.add('flex');
+        playBeep(200, 'sawtooth', 0.5, 0.1);
+        runBoot();
+        startGlitchLoop();
+    }
+
+    function runBoot() {
+        if (bootStep < bootSequence.length) {
+            const line = document.createElement('div');
+            line.className = 'mb-2';
+            bootScreen.appendChild(line);
+            const fullText = bootSequence[bootStep];
+            let i = 0;
+            const typeInterval = setInterval(() => {
+                line.textContent = fullText.substring(0, i + 1) + (i < fullText.length - 1 ? ' █' : '');
+                playBeep(800 + Math.random()*200, 'square', 0.02, 0.02);
+                i++;
+                if (i === fullText.length) {
+                    clearInterval(typeInterval);
+                    line.textContent = fullText;
+                    bootStep++;
+                    setTimeout(runBoot, 800);
+                }
+            }, 30);
+        } else {
+            bootScreen.classList.remove('flex');
+            bootScreen.classList.add('hidden');
+            appScreen.classList.remove('hidden');
+            appScreen.classList.add('flex');
+            treeItemCount = 0;
+            renderTree();
+        }
+    }
+
+    function startGlitchLoop() {
+        setInterval(() => {
+            if (Math.random() > 0.96) {
+                document.body.classList.add('sys-glitch');
+                playBeep(150, 'sawtooth', 0.1, 0.1);
+                setTimeout(() => { document.body.classList.remove('sys-glitch'); }, 100 + Math.random() * 200);
+            }
+        }, 2000);
+    }
+
+    function handleItemClick(id, isFolderToggle = false) {
+        const item = fileSystem.find(f => f.id === id);
+        if (!item) return;
+
+        if (item.password && !unlockedItems.includes(item.id)) {
+            playBeep(200, 'sawtooth', 0.2, 0.1);
+            pendingUnlockId = id;
+            pwdInput.value = '';
+            pwdError.classList.add('hidden');
+            pwdModal.classList.remove('hidden');
+            pwdModal.classList.add('flex');
+            pwdInput.focus();
+            return;
+        }
+
+        if (isFolderToggle && item.type === 'folder') {
+            playBeep(600, 'sine', 0.05, 0.03);
+            if (expandedFolders.includes(id)) {
+                expandedFolders = expandedFolders.filter(f => f !== id);
+            } else {
+                expandedFolders.push(id);
+            }
+            treeItemCount = 0;
+            renderTree();
+        } else if (item.type === 'file') {
+            playBeep(900, 'sine', 0.05, 0.03);
+            selectedFileId = id;
+            treeItemCount = 0;
+            renderTree();
+            renderFile();
+        }
+    }
+
+    pwdInput.addEventListener('keydown', (e) => {
+        playBeep(400, 'triangle', 0.01, 0.01);
+        if (e.key === 'Enter') {
+            const item = fileSystem.find(f => f.id === pendingUnlockId);
+            if (item && item.password.toUpperCase() === pwdInput.value.toUpperCase()) {
+                playBeep(800, 'square', 0.1, 0.1);
+                playBeep(1200, 'square', 0.1, 0.1);
+                unlockedItems.push(item.id);
+                pwdModal.classList.add('hidden');
+                pwdModal.classList.remove('flex');
+                handleItemClick(item.id, true);
+            } else {
+                playBeep(150, 'sawtooth', 0.3, 0.1);
+                pwdError.classList.remove('hidden');
+                pwdInput.value = '';
+            }
+        } else if (e.key === 'Escape') {
+            closePwdModal();
+        }
+    });
+
+    function closePwdModal() {
+        pwdModal.classList.add('hidden');
+        pwdModal.classList.remove('flex');
+        pendingUnlockId = null;
+    }
+
+    document.addEventListener('click', function(e) {
+        if (!e.target) return;
+        const targetEl = e.target.nodeType === 3 ? e.target.parentNode : e.target;
+        if (!targetEl || !targetEl.closest) return;
+        
+        if (targetEl.closest('.arg-glitch-link')) {
+            playBeep(100, 'sawtooth', 0.8, 0.2);
+            document.body.classList.add('sys-glitch', 'invert', 'sepia', 'hue-rotate-[300deg]');
+            setTimeout(() => { document.body.classList.remove('sys-glitch', 'invert', 'sepia', 'hue-rotate-[300deg]'); }, 1000);
+        }
+        
+        const revealEl = targetEl.closest('.arg-reveal');
+        if (revealEl) {
+            playBeep(100, 'sawtooth', 0.8, 0.3);
+            document.body.classList.add('sys-glitch', 'invert', 'sepia', 'hue-rotate-[300deg]');
+            setTimeout(() => { document.body.classList.remove('sys-glitch', 'invert', 'sepia', 'hue-rotate-[300deg]'); }, 500);
+            const secret = revealEl.getAttribute('data-secret');
+            fileContentDiv.innerHTML = secret;
+            setupDynamics();
+        }
+
+        if (targetEl.closest('.arg-screamer')) {
+            playBeep(50, 'sawtooth', 1.5, 1);
+            screamerOverlay.classList.remove('hidden');
+            screamerOverlay.classList.add('screamer-flash');
+            setTimeout(() => { 
+                screamerOverlay.classList.add('hidden'); 
+                screamerOverlay.classList.remove('screamer-flash');
+            }, 1500);
+        }
+        
+        const audioBtn = targetEl.closest('.arg-audio-log');
+        if (audioBtn) {
+            const btn = audioBtn;
+            const output = btn.nextElementSibling;
+            const lines = btn.getAttribute('data-text').split('|');
+            const revealId = btn.getAttribute('data-reveal');
+            let idx = 0;
+            btn.disabled = true;
+            btn.classList.add('opacity-50');
+            output.innerHTML = '';
+            playBeep(200, 'sawtooth', lines.length * 2, 0.05);
+            const intId = setInterval(() => {
+                if (idx < lines.length) {
+                    output.innerHTML += '<div>' + lines[idx] + '</div>';
+                    playBeep(600, 'triangle', 0.1, 0.05);
+                    idx++;
+                } else {
+                    clearInterval(intId);
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-50');
+                    if (revealId) {
+                        const r = document.getElementById(revealId);
+                        if (r) {
+                            r.classList.remove('hidden');
+                            setupDynamics();
+                        }
+                    }
+                }
+            }, 2000);
+            dynamicIntervals.push(intId);
+        }
+    });
+
+    document.addEventListener('mousedown', function(e) {
+        if (!e.target) return;
+        const targetEl = e.target.nodeType === 3 ? e.target.parentNode : e.target;
+        if (!targetEl || !targetEl.closest) return;
+
+        const scannerEl = targetEl.closest('.arg-scanner');
+        if (scannerEl) {
+            scannerProg = 0;
+            scannerEl.style.setProperty('--progress', '0%');
+            scannerInt = setInterval(() => {
+                scannerProg += 5;
+                scannerEl.style.setProperty('--progress', scannerProg + '%');
+                playBeep(300 + (scannerProg * 5), 'sine', 0.05, 0.05);
+                if (scannerProg >= 100) {
+                    clearInterval(scannerInt);
+                    playBeep(150, 'sawtooth', 0.5, 0.2);
+                    scannerEl.innerHTML = scannerEl.getAttribute('data-secret');
+                    scannerEl.classList.remove('arg-scanner', 'cursor-pointer');
+                    scannerEl.classList.add('text-red-500');
+                    scannerEl.style.setProperty('--progress', '0%');
+                }
+            }, 100);
+        }
+    });
+
+    document.addEventListener('mouseup', stopScanner);
+    document.addEventListener('mouseleave', stopScanner);
+
+    function stopScanner(e) {
+        if (scannerInt) {
+            clearInterval(scannerInt);
+            scannerInt = null;
+            if (scannerProg < 100) {
+                document.querySelectorAll('.arg-scanner').forEach(el => el.style.setProperty('--progress', '0%'));
+                playBeep(200, 'sawtooth', 0.1, 0.05);
+            }
+            scannerProg = 0;
+        }
+    }
+
+    document.addEventListener('input', function(e) {
+        if (!e.target || !e.target.classList) return;
+
+        if (e.target.classList.contains('arg-possessed')) {
+            const msg = e.target.getAttribute('data-msg');
+            const currLen = e.target.value.length;
+            if (currLen <= msg.length) {
+                e.target.value = msg.substring(0, currLen);
+            } else {
+                e.target.value = msg;
+            }
+            playBeep(300, 'sawtooth', 0.05, 0.05);
+        }
+        
+        if (e.target.classList.contains('interro-input')) {
+            const container = e.target.closest('.arg-interrogation');
+            const answer = container.getAttribute('data-answer');
+            const target = container.getAttribute('data-target');
+            if (e.target.value.toUpperCase() === answer.toUpperCase()) {
+                playBeep(1000, 'sine', 0.2, 0.1);
+                e.target.disabled = true;
+                const targetEl = document.getElementById(target);
+                if (targetEl) targetEl.classList.remove('hidden');
+            }
+        }
+    });
+
+    function cleanupDynamics() {
+        dynamicIntervals.forEach(clearInterval);
+        dynamicIntervals = [];
+    }
+
+    function setupDynamics() {
+        const paranoias = document.querySelectorAll('.arg-paranoia');
+        paranoias.forEach(p => {
+            const orig = p.textContent;
+            const truth = p.getAttribute('data-true');
+            const intId = setInterval(() => {
+                if (Math.random() > 0.8) {
+                    p.textContent = truth;
+                    p.classList.add('text-red-500', 'font-bold');
+                    setTimeout(() => { p.textContent = orig; p.classList.remove('text-red-500', 'font-bold'); }, 200);
+                }
+            }, 3000);
+            dynamicIntervals.push(intId);
+        });
+
+        const radars = document.querySelectorAll('.arg-radar');
+        radars.forEach(r => {
+            let dist = 35;
+            const intId = setInterval(() => {
+                dist -= Math.floor(Math.random() * 4);
+                if(dist < 0) dist = 0;
+                r.textContent = "[RADAR] ANOMALIE DÉTECTÉE À : " + dist + " MÈTRES";
+                playBeep(1200 - (dist*10), 'sine', 0.1, 0.05);
+            }, 1500);
+            dynamicIntervals.push(intId);
+        });
+
+        const ghosts = document.querySelectorAll('.arg-ghost-typing');
+        ghosts.forEach(g => {
+            const text = g.getAttribute('data-text');
+            g.textContent = '';
+            let i = 0;
+            const intId = setInterval(() => {
+                if (i < text.length) {
+                    g.textContent += text.charAt(i);
+                    playBeep(400, 'triangle', 0.05, 0.02);
+                    i++;
+                } else {
+                    clearInterval(intId);
+                }
+            }, 100);
+            dynamicIntervals.push(intId);
+        });
+
+        const countdowns = document.querySelectorAll('.arg-countdown');
+        countdowns.forEach(c => {
+            let time = parseInt(c.getAttribute('data-time') || '60');
+            const intId = setInterval(() => {
+                time--;
+                if(time < 0) time = 0;
+                const m = Math.floor(time / 60).toString().padStart(2, '0');
+                const s = (time % 60).toString().padStart(2, '0');
+                c.textContent = "TEMPS RESTANT : " + m + ":" + s;
+                if (time <= 10) playBeep(200, 'sawtooth', 0.1, 0.1);
+            }, 1000);
+            dynamicIntervals.push(intId);
+        });
+    }
+
+    function createTreeHtml(parentId, level = 0) {
+        const items = fileSystem.filter(f => f.parentId === parentId);
+        let html = '';
+        items.forEach(item => {
+            if (item.isGhost) return;
+
+            const isExpanded = expandedFolders.includes(item.id);
+            const isSelected = selectedFileId === item.id;
+            const padding = level * 16;
+            const delay = treeItemCount * 0.05;
+            treeItemCount++;
+            
+            let lockHtml = '';
+            if (item.password) {
+                if (unlockedItems.includes(item.id)) {
+                    lockHtml = '<i data-lucide="unlock" class="w-3 h-3 ml-2 opacity-50"></i>';
+                } else {
+                    lockHtml = '<i data-lucide="lock" class="w-3 h-3 ml-2 text-red-500"></i>';
+                }
+            }
+
+            if (item.type === 'folder') {
+                html += '<div class="tree-anim" style="margin-left: ' + padding + 'px; animation-delay: ' + delay + 's;">' +
+                    '<div class="folder-item" onclick="handleItemClick(\'' + item.id + '\', true)">' +
+                        '<i data-lucide="' + (isExpanded ? 'chevron-down' : 'chevron-right') + '" class="chevron"></i>' +
+                        '<i data-lucide="folder" class="icon"></i>' +
+                        '<span class="truncate">' + item.name + '</span>' +
+                        lockHtml +
+                    '</div>' +
+                    (isExpanded ? createTreeHtml(item.id, level + 1) : '') +
+                '</div>';
+            } else {
+                html += '<div class="tree-anim" style="margin-left: ' + padding + 'px; animation-delay: ' + delay + 's;">' +
+                    '<div class="folder-item ' + (isSelected ? 'selected' : '') + '" onclick="handleItemClick(\'' + item.id + '\')">' +
+                        '<span style="width: 20px; display: inline-block;"></span>' +
+                        '<i data-lucide="file-text" class="icon"></i>' +
+                        '<span class="truncate">' + item.name + '</span>' +
+                        lockHtml +
+                    '</div>' +
+                '</div>';
+            }
+        });
+        return html;
+    }
+
+    function renderTree() {
+        document.getElementById('tree-container').innerHTML = createTreeHtml(null);
+        lucide.createIcons();
+    }
+
+    function renderFile() {
+        cleanupDynamics();
+        const file = fileSystem.find(f => f.id === selectedFileId);
+        const fileHeader = document.getElementById('file-header');
+        const noFile = document.getElementById('no-file');
+        
+        if (file) {
+            document.getElementById('file-title').textContent = file.name;
+            document.getElementById('file-date').textContent = 'DERNIÈRE MODIFICATION: ' + file.date;
+            fileContentDiv.innerHTML = file.content || '';
+            fileHeader.classList.remove('hidden');
+            fileContentDiv.classList.remove('hidden');
+            noFile.classList.add('hidden');
+
+            setupDynamics();
+
+            if (file.content && file.content.includes('[FATAL_EXCEPTION_')) {
+                playBeep(100, 'sawtooth', 0.8, 0.2);
+                document.body.classList.add('sys-glitch', 'invert', 'sepia', 'hue-rotate-[300deg]');
+                setTimeout(() => { document.body.classList.remove('sys-glitch', 'invert', 'sepia', 'hue-rotate-[300deg]'); }, 1000);
+            }
+            lucide.createIcons();
+        } else {
+            fileHeader.classList.add('hidden');
+            fileContentDiv.classList.add('hidden');
+            noFile.classList.remove('hidden');
+        }
+    }
+</script>
+</body>
+</html>
