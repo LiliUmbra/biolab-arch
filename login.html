@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>U.S.G. BIOLAB - ARCHIVE 1998</title>
+    <style>
+        :root {
+            --glow-color: #1a9e1a;
+            --error-color: #8b0000;
+            --bg-color: #020202;
+            --glitch-blue: #008b8b;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--glow-color);
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            text-transform: uppercase;
+        }
+
+        .crt-noise {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background-image: url('data:image/svg+xml,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noiseFilter"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noiseFilter)"/%3E%3C/svg%3E');
+            opacity: 0.12;
+            pointer-events: none;
+            z-index: 20;
+            animation: noiseAnim 0.2s infinite;
+        }
+
+        @keyframes noiseAnim {
+            0% { background-position: 0 0; }
+            10% { background-position: -50px 50px; }
+            20% { background-position: 80px -20px; }
+            30% { background-position: -30px 60px; }
+            40% { background-position: 40px -70px; }
+            50% { background-position: -60px 30px; }
+            60% { background-position: 90px -40px; }
+            70% { background-position: -20px 80px; }
+            80% { background-position: 50px -50px; }
+            90% { background-position: -80px 20px; }
+            100% { background-position: 0 0; }
+        }
+
+        .screen-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.4) 50%), 
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            background-size: 100% 4px, 3px 100%;
+            pointer-events: none;
+            z-index: 10;
+            animation: scanline 8s linear infinite;
+            box-shadow: inset 0 0 100px rgba(0,0,0,0.9);
+        }
+
+        @keyframes scanline {
+            0% { background-position: 0 0; }
+            100% { background-position: 0 100vh; }
+        }
+
+        @keyframes screenJump {
+            0% { transform: translate(0,0); }
+            1% { transform: translate(3px, -5px); filter: hue-rotate(45deg); opacity: 0.8; }
+            2% { transform: translate(-3px, 5px); }
+            3% { transform: translate(0,0); filter: none; opacity: 1; }
+            15% { transform: translate(0,0); }
+            16% { transform: skewX(5deg); }
+            17% { transform: skewX(0deg); }
+            100% { transform: translate(0,0); }
+        }
+
+        @keyframes textGlitch {
+            0% { text-shadow: none; }
+            2% { text-shadow: 2px 0 var(--error-color), -2px 0 var(--glitch-blue); }
+            4% { text-shadow: -2px 0 var(--error-color), 2px 0 var(--glitch-blue); }
+            6% { text-shadow: none; }
+            45% { text-shadow: none; }
+            46% { text-shadow: 3px 0 var(--error-color), -3px 0 var(--glitch-blue); }
+            48% { text-shadow: none; }
+            100% { text-shadow: none; }
+        }
+
+        @keyframes extremeGlitch {
+            0% { clip-path: inset(10% 0 80% 0); transform: translate(-5px, 5px); }
+            20% { clip-path: inset(80% 0 5% 0); transform: translate(5px, -5px); }
+            40% { clip-path: inset(30% 0 40% 0); transform: translate(-5px, 5px); }
+            60% { clip-path: inset(50% 0 20% 0); transform: translate(5px, -5px); }
+            80% { clip-path: inset(5% 0 80% 0); transform: translate(-5px, 5px); }
+            100% { clip-path: inset(0 0 0 0); transform: translate(0, 0); }
+        }
+
+        @keyframes pulseWarning {
+            0% { opacity: 0.3; }
+            50% { opacity: 1; color: var(--error-color); }
+            100% { opacity: 0.3; }
+        }
+
+        .monitor {
+            animation: screenJump 5s infinite;
+            border: 15px solid #111;
+            border-radius: 10px;
+            padding: 40px;
+            background: #0a0c0a;
+            box-shadow: inset 0 0 80px rgba(0,0,0,1), 0 0 30px rgba(26, 158, 26, 0.1);
+            position: relative;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .glitch-active {
+            animation: extremeGlitch 0.2s cubic-bezier(.25, .46, .45, .94) both infinite;
+            filter: invert(0.8) sepia(1) hue-rotate(300deg);
+        }
+
+        .header-warning {
+            text-align: center;
+            font-size: 0.8rem;
+            margin-bottom: 20px;
+            animation: pulseWarning 2s infinite;
+            border-bottom: 1px dashed var(--error-color);
+            padding-bottom: 10px;
+            letter-spacing: 2px;
+        }
+
+        .helix-container {
+            width: 100px;
+            height: 120px;
+            margin: 0 auto 20px;
+            position: relative;
+            perspective: 1000px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            animation: textGlitch 4s infinite;
+            opacity: 0.7;
+        }
+
+        .helix {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            animation: rotate 10s infinite linear;
+        }
+
+        .rung {
+            position: absolute;
+            width: 60px;
+            height: 3px;
+            background: var(--glow-color);
+            left: 20px;
+            box-shadow: 0 0 5px var(--glow-color);
+        }
+
+        .rung:nth-child(1) { top: 10%; transform: rotateY(0deg) translateZ(30px); }
+        .rung:nth-child(2) { top: 25%; transform: rotateY(45deg) translateZ(30px); }
+        .rung:nth-child(3) { top: 40%; transform: rotateY(90deg) translateZ(30px); }
+        .rung:nth-child(4) { top: 55%; transform: rotateY(135deg) translateZ(30px); }
+        .rung:nth-child(5) { top: 70%; transform: rotateY(180deg) translateZ(30px); }
+        .rung:nth-child(6) { top: 85%; transform: rotateY(225deg) translateZ(30px); }
+
+        .bio-tag {
+            position: absolute;
+            font-weight: bold;
+            font-size: 1rem;
+            background: #000;
+            padding: 2px 5px;
+            border: 1px solid var(--glow-color);
+            z-index: 5;
+            color: var(--glow-color);
+            animation: textGlitch 2s infinite;
+        }
+
+        @keyframes rotate {
+            from { transform: rotateY(0deg); }
+            to { transform: rotateY(360deg); }
+        }
+
+        .login-box {
+            text-align: center;
+            border-top: 1px solid #333;
+            padding-top: 20px;
+        }
+
+        .input-group {
+            position: relative;
+            margin: 15px 0;
+        }
+
+        .input-group::before {
+            content: '>';
+            position: absolute;
+            left: 10px;
+            top: 12px;
+            color: var(--glow-color);
+            font-weight: bold;
+            opacity: 0.5;
+        }
+
+        input {
+            background: rgba(0, 20, 0, 0.3);
+            border: 1px solid #333;
+            color: var(--glow-color);
+            padding: 10px 10px 10px 30px;
+            width: 100%;
+            box-sizing: border-box;
+            outline: none;
+            font-family: inherit;
+            letter-spacing: 1px;
+        }
+
+        input:focus {
+            border-color: var(--glow-color);
+            box-shadow: inset 0 0 10px rgba(26, 158, 26, 0.2);
+            animation: textGlitch 1.5s infinite;
+        }
+
+        button {
+            background: transparent;
+            color: var(--glow-color);
+            border: 1px solid var(--glow-color);
+            padding: 12px 20px;
+            cursor: pointer;
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: bold;
+            width: 100%;
+            margin-top: 15px;
+            transition: 0.1s;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        button:hover, button:active {
+            background: var(--glow-color);
+            color: black;
+            box-shadow: 0 0 15px var(--glow-color);
+        }
+
+        .status {
+            font-size: 0.75rem;
+            margin-bottom: 15px;
+            text-align: left;
+            opacity: 0.8;
+            line-height: 1.4;
+        }
+
+        .corrupted {
+            color: var(--error-color);
+            font-weight: bold;
+        }
+
+        .post-it {
+            position: fixed;
+            top: 40px;
+            right: 50px;
+            width: 160px;
+            height: 160px;
+            background-color: #fcf482;
+            box-shadow: 2px 4px 10px rgba(0,0,0,0.8);
+            transform: rotate(6deg);
+            z-index: 100;
+            padding: 20px;
+            box-sizing: border-box;
+            color: #111;
+            font-family: 'Comic Sans MS', 'Chalkboard SE', 'Marker Felt', sans-serif;
+            font-size: 1.1rem;
+            text-transform: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .post-it::before {
+            content: "";
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%) rotate(-4deg);
+            width: 70px;
+            height: 25px;
+            background-color: rgba(255, 255, 255, 0.5);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+
+        .post-it p {
+            margin: 5px 0;
+            line-height: 1.3;
+        }
+        
+        .post-it strong {
+            font-size: 0.9rem;
+            opacity: 0.7;
+        }
+    </style>
+</head>
+<body>
+
+<div class="post-it">
+    <p><strong>ID:</strong><br>Welbert Aesker</p>
+    <p><strong>MDP:</strong><br>Rebecca</p>
+</div>
+
+<div class="crt-noise"></div>
+<div class="screen-overlay"></div>
+
+<div class="monitor" id="monitor">
+    <div class="header-warning">
+        DANGER BIOLOGIQUE CLASSE 4<br>
+        PROTOCOLE DE CONFINEMENT ACTIF
+    </div>
+
+    <div class="helix-container">
+        <div class="bio-tag">MK-V</div>
+        <div class="helix">
+            <div class="rung"></div>
+            <div class="rung"></div>
+            <div class="rung"></div>
+            <div class="rung"></div>
+            <div class="rung"></div>
+            <div class="rung"></div>
+        </div>
+    </div>
+
+    <div class="login-box">
+        <div class="status">
+            INITIALISATION TERMINAL... <br>
+            VÉRIFICATION INTÉGRITÉ SGBD... <span class="corrupted">ÉCHEC</span><br>
+            SECTEUR 7 : PERTE DE SIGNAL
+        </div>
+        
+        <div class="input-group">
+            <input type="text" id="user" placeholder="MATRICULE_CHERCHEUR" autocomplete="off">
+        </div>
+        <div class="input-group">
+            <input type="password" id="pass" placeholder="CLÉ_D'ACCRÉDITATION">
+        </div>
+        
+        <button onclick="login()">OUTREPASSER LA SÉCURITÉ</button>
+        <p id="msg" style="display:none; color:var(--error-color); font-size: 0.8rem; margin-top:15px; text-shadow: 1px 0px var(--glitch-blue); font-weight:bold;">
+            ERREUR FATALE : PROTOCOLE GÉNÉTIQUE NON AUTORISÉ
+        </p>
+    </div>
+</div>
+
+<script>
+    const users = {
+        "admin": "bio123",
+        "commandant": "orion",
+        "Welbert Aesker": "Rebecca"
+    };
+
+    const targetUrl = "https://sites.google.com/view/arbitre/logs";
+    let audioCtx = null;
+
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+    }
+
+    function playStaticNoise(duration) {
+        if (!audioCtx) return;
+        
+        const bufferSize = audioCtx.sampleRate * duration;
+        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        
+        for (let i = 0; i < bufferSize; i++) {
+            data[i] = Math.random() * 2 - 1;
+        }
+        
+        const noise = audioCtx.createBufferSource();
+        noise.buffer = buffer;
+        
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.value = 800;
+        filter.Q.value = 1.5;
+        
+        const gainNode = audioCtx.createGain();
+        gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+        
+        noise.connect(filter);
+        filter.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        
+        noise.start();
+    }
+
+    function playKeystroke() {
+        initAudio();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(150 + Math.random() * 50, audioCtx.currentTime);
+        
+        gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
+        
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.05);
+    }
+
+    document.getElementById('user').addEventListener('input', playKeystroke);
+    document.getElementById('pass').addEventListener('input', playKeystroke);
+
+    function login() {
+        initAudio();
+        
+        const u = document.getElementById("user").value;
+        const p = document.getElementById("pass").value;
+        const m = document.getElementById("msg");
+        const monitor = document.getElementById("monitor");
+
+        if (users[u] && users[u] === p) {
+            window.parent.location.href = targetUrl;
+        } else {
+            m.style.display = "block";
+            monitor.classList.add("glitch-active");
+            
+            playStaticNoise(0.8);
+            
+            let flickerInterval = setInterval(() => {
+                document.body.style.backgroundColor = Math.random() > 0.5 ? "#1a0000" : "#020202";
+            }, 50);
+
+            setTimeout(() => {
+                monitor.classList.remove("glitch-active");
+                clearInterval(flickerInterval);
+                document.body.style.backgroundColor = "#020202";
+            }, 800);
+        }
+    }
+</script>
+
+</body>
+</html>
